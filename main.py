@@ -196,7 +196,6 @@ def main(params):
     if params.epoch_size == -1:
         params.epoch_size = params.n_para
     assert params.epoch_size > 0
-    exit()
 
     # start training
     for _ in range(trainer.epoch, params.max_epoch):
