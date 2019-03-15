@@ -8,7 +8,7 @@
 from .model import LSTM_PARAMS, BILSTM_PARAMS
 
 
- hashs = {}
+hashs = {}
 
 
 def assert_equal(x, y):
