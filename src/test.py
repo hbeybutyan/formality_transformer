@@ -53,17 +53,6 @@ def test_sharing(encoder, decoder, params):
     if params.share_lang_emb:
         for i in range(1, params.n_langs):
             assert_equal(encoder.embeddings[i].weight, encoder.embeddings[0].weight)
-    # LSTM layers
-    if not params.transformer:
-        for k in range(params.n_enc_layers):
-            if params.n_enc_layers - k <= params.share_enc - 1:
-                for i in range(1, params.n_langs):
-                    for name in BILSTM_PARAMS:
-                        assert_equal(getattr(encoder.lstm[i], name % k), getattr(encoder.lstm[0], name % k))
-    # projection layers
-    if not params.transformer and params.share_enc >= 1:
-        for i in range(1, params.n_langs):
-            assert_equal(encoder.proj[i].weight, encoder.proj[0].weight)
 
     #
     # decoder
@@ -75,21 +64,6 @@ def test_sharing(encoder, decoder, params):
     elif params.share_lang_emb:
         for i in range(1, params.n_langs):
             assert_equal(decoder.embeddings[i].weight, decoder.embeddings[0].weight)
-    # LSTM layers
-    if not params.transformer:
-        for k in range(params.n_dec_layers):
-            if k + 1 <= params.share_dec:
-                for i in range(1, params.n_langs):
-                    for name in LSTM_PARAMS:
-                        if k == 0:
-                            assert_equal(getattr(decoder.lstm1[i], name % k), getattr(decoder.lstm1[0], name % k))
-                        else:
-                            assert_equal(getattr(decoder.lstm2[i], name % (k - 1)), getattr(decoder.lstm2[0], name % (k - 1)))
-    # attention layers
-    if not params.transformer and params.share_att_proj:
-        for i in range(1, params.n_langs):
-            assert_equal(decoder.att_proj[i].weight, decoder.att_proj[0].weight)
-            assert_equal(decoder.att_proj[i].bias, decoder.att_proj[0].bias)
     # projection layers between LSTM and output embeddings
     if params.lstm_proj:
         if params.share_lstm_proj:
