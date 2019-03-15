@@ -105,15 +105,6 @@ class TrainerMT(MultiprocessingEventLoop):
             self.stats['xe_costs_%s_%s' % (lang, lang)] = []
         for lang1, lang2 in params.para_directions:
             self.stats['xe_costs_%s_%s' % (lang1, lang2)] = []
-        for lang1, lang2 in params.back_directions:
-            self.stats['xe_costs_bt_%s_%s' % (lang1, lang2)] = []
-        for lang1, lang2, lang3 in params.pivo_directions:
-            self.stats['xe_costs_%s_%s_%s' % (lang1, lang2, lang3)] = []
-        for lang in params.langs:
-            self.stats['lme_costs_%s' % lang] = []
-            self.stats['lmd_costs_%s' % lang] = []
-            self.stats['lmer_costs_%s' % lang] = []
-            self.stats['enc_norms_%s' % lang] = []
         self.last_time = time.time()
         if len(params.pivo_directions) > 0:
             self.gen_time = 0
