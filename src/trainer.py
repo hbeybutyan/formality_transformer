@@ -31,16 +31,12 @@ class TrainerMT(MultiprocessingEventLoop):
         """
         Initialize trainer.
         """
-        super().__init__(device_ids=tuple(range(params.otf_num_processes)))
+        super().__init__()
         self.encoder = encoder
         self.decoder = decoder
         self.discriminator = discriminator
         self.data = data
         self.params = params
-
-        # initialization for on-the-fly generation/training
-        if len(params.pivo_directions) > 0:
-            self.otf_start_multiprocessing()
 
         # define encoder parameters (the ones shared with the
         # decoder are optimized by the decoder optimizer)
@@ -131,11 +127,7 @@ class TrainerMT(MultiprocessingEventLoop):
         # initialize lambda coefficients and their configurations
         parse_lambda_config(params, 'lambda_xe_mono')
         parse_lambda_config(params, 'lambda_xe_para')
-        parse_lambda_config(params, 'lambda_xe_back')
-        parse_lambda_config(params, 'lambda_xe_otfd')
-        parse_lambda_config(params, 'lambda_xe_otfa')
         parse_lambda_config(params, 'lambda_dis')
-        parse_lambda_config(params, 'lambda_lm')
 
     def init_bpe(self):
         """
