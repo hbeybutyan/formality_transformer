@@ -19,7 +19,7 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
 
         self.n_langs = params.n_langs
-        self.input_dim = params.hidden_dim if params.attention else params.enc_dim
+        self.input_dim = params.hidden_dim
         self.dis_layers = params.dis_layers
         self.dis_hidden_dim = params.dis_hidden_dim
         self.dis_dropout = params.dis_dropout
@@ -28,7 +28,7 @@ class Discriminator(nn.Module):
         for i in range(self.dis_layers + 1):
             if i == 0:
                 input_dim = self.input_dim
-                input_dim *= (2 if params.attention and not params.dis_input_proj else 1)
+                input_dim *= (2 if not params.dis_input_proj else 1)
             else:
                 input_dim = self.dis_hidden_dim
             output_dim = self.dis_hidden_dim if i < self.dis_layers else self.n_langs
