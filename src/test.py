@@ -30,10 +30,6 @@ def test_sharing(encoder, decoder, params):
     the decoder, and the language model.
     Test that frozen parameters are not being updated.
     """
-    if not params.attention:  # TODO: implement this for seq2seq model
-        return
-    assert params.attention is True
-
     # frozen parameters
     if params.freeze_enc_emb:
         for i in range(params.n_langs):
