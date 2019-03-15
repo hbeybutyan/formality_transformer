@@ -147,7 +147,8 @@ class EvaluatorMT(object):
 
             # batch
             (sent1, len1), (sent2, len2) = batch
-            sent1, sent2 = sent1.cuda(), sent2.cuda()
+            if params.cuda:
+                sent1, sent2 = sent1.cuda(), sent2.cuda()
 
             # encode / decode / generate
             encoded = self.encoder(sent1, len1, lang1_id)
@@ -205,14 +206,18 @@ class EvaluatorMT(object):
 
             # batch
             (sent1, len1), (sent3, len3) = batch
-            sent1, sent3 = sent1.cuda(), sent3.cuda()
+            if params.cuda:
+                sent1, sent3 = sent1.cuda(), sent3.cuda()
 
             # encode / generate lang1 -> lang2
             encoded = self.encoder(sent1, len1, lang1_id)
             sent2_, len2_, _ = self.decoder.generate(encoded, lang2_id)
 
             # encode / decode / generate lang2 -> lang3
-            encoded = self.encoder(sent2_.cuda(), len2_, lang2_id)
+            if params.cuda:
+                encoded = self.encoder(sent2_.cuda(), len2_, lang2_id)
+            else:
+                encoded = self.encoder(sent2_, len2_, lang2_id)
             decoded = self.decoder(encoded, sent3[:-1], lang3_id)
             sent3_, len3_, _ = self.decoder.generate(encoded, lang3_id)
 

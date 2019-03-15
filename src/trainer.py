@@ -331,7 +331,11 @@ class TrainerMT(MultiprocessingEventLoop):
         for lang_id, lang in enumerate(self.params.langs):
             sent1, len1 = self.get_batch('dis', lang, None)
             with torch.no_grad():
-                encoded.append(self.encoder(sent1.cuda(), len1, lang_id))
+                if self.params.cuda:
+                    encoded.append(self.encoder(sent1.cuda(), len1, lang_id))
+                else:
+                    encoded.append(self.encoder(sent1, len1, lang_id))
+
 
         # discriminator
         dis_inputs = [x.dis_input.view(-1, x.dis_input.size(-1)) for x in encoded]
@@ -341,7 +345,10 @@ class TrainerMT(MultiprocessingEventLoop):
 
         # loss
         self.dis_target = torch.cat([torch.zeros(sz).fill_(i) for i, sz in enumerate(ntokens)])
-        self.dis_target = self.dis_target.contiguous().long().cuda()
+        if self.params.cuda:
+            self.dis_target = self.dis_target.contiguous().long().cuda()
+        else:
+            self.dis_target = self.dis_target.contiguous().long()
         y = self.dis_target
 
         loss = F.cross_entropy(predictions, y)
@@ -383,7 +390,8 @@ class TrainerMT(MultiprocessingEventLoop):
         # prepare the encoder / decoder inputs
         if lang1 == lang2:
             sent1, len1 = self.add_noise(sent1, len1, lang1_id)
-        sent1, sent2 = sent1.cuda(), sent2.cuda()
+        if params.cuda:
+            sent1, sent2 = sent1.cuda(), sent2.cuda()
 
         # encoded states
         encoded = self.encoder(sent1, len1, lang1_id)
@@ -402,7 +410,8 @@ class TrainerMT(MultiprocessingEventLoop):
             predictions = self.discriminator(encoded.dis_input.view(-1, encoded.dis_input.size(-1)))
             fake_y = torch.LongTensor(predictions.size(0)).random_(1, params.n_langs)
             fake_y = (fake_y + lang1_id) % params.n_langs
-            fake_y = fake_y.cuda()
+            if params.cuda:
+                fake_y = fake_y.cuda()
             dis_loss = F.cross_entropy(predictions, fake_y)
 
         # total loss
@@ -586,7 +595,8 @@ class TrainerMT(MultiprocessingEventLoop):
         self.decoder.train()
 
         # prepare batch
-        sent1, sent2, sent3 = sent1.cuda(), sent2.cuda(), sent3.cuda()
+        if params.cuda:
+            sent1, sent2, sent3 = sent1.cuda(), sent2.cuda(), sent3.cuda()
         bs = sent1.size(1)
 
         if backprop_temperature == -1:
@@ -599,7 +609,10 @@ class TrainerMT(MultiprocessingEventLoop):
             assert scores.size() == (len2.max() - 1, bs, n_words2)
 
             # lang2 -> lang3
-            bos = torch.cuda.FloatTensor(1, bs, n_words2).zero_()
+            if params.cuda:
+                bos = torch.cuda.FloatTensor(1, bs, n_words2).zero_()
+            else:
+                bos = torch.FloatTensor(1, bs, n_words2).zero_()
             bos[0, :, params.bos_index[lang2_id]] = 1
             sent2_input = torch.cat([bos, F.softmax(scores / backprop_temperature, -1)], 0)
             encoded = self.encoder(sent2_input, len2, lang_id=lang2_id)
