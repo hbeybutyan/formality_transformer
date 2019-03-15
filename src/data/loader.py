@@ -368,19 +368,16 @@ def check_all_data_params(params):
 
     # check all monolingual datasets are used
     for lang, _ in params.mono_dataset.items():
-        assert lang in params.mono_directions or any(lang1 == lang3 == lang for (lang1, _, lang3) in params.pivo_directions)
+        assert lang in params.mono_directions
 
     # check all parallel datasets are used
     for (lang1, lang2), (train_path, _, _) in params.para_dataset.items():
         assert (train_path == '' or
                 (lang1, lang2) in params.para_directions or
-                (lang2, lang1) in params.para_directions or
-                any((lang1 == _lang1 and lang2 == _lang2) or (lang1 == _lang2 and lang2 == _lang1) or
-                    (lang1 == _lang1 and lang2 == _lang3) or (lang1 == _lang3 and lang2 == _lang1)
-                    for _lang1, _lang2, _lang3 in params.pivo_directions))
+                (lang2, lang1) in params.para_directions)
 
     # check there is at least one direction / some data
-    assert len(params.mono_directions) + len(params.para_directions) + len(params.pivo_directions) > 0
+    assert len(params.mono_directions) + len(params.para_directions) > 0
     assert not params.n_mono == params.n_para == 0
 
     # check vocabulary parameters
