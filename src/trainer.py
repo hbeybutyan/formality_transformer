@@ -31,7 +31,7 @@ class TrainerMT(MultiprocessingEventLoop):
         """
         Initialize trainer.
         """
-        super().__init__()
+        super().__init__(range(30))
         self.encoder = encoder
         self.decoder = decoder
         self.discriminator = discriminator
