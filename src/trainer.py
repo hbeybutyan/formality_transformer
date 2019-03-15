@@ -106,8 +106,6 @@ class TrainerMT(MultiprocessingEventLoop):
         for lang1, lang2 in params.para_directions:
             self.stats['xe_costs_%s_%s' % (lang1, lang2)] = []
         self.last_time = time.time()
-        if len(params.pivo_directions) > 0:
-            self.gen_time = 0
 
         # data iterators
         self.iterators = {}
@@ -639,7 +637,7 @@ class TrainerMT(MultiprocessingEventLoop):
         """
         self.n_iter += 1
         self.n_total_iter += 1
-        n_batches = len(self.params.mono_directions) + len(self.params.para_directions) + len(self.params.back_directions) + len(self.params.pivo_directions)
+        n_batches = len(self.params.mono_directions) + len(self.params.para_directions)
         self.n_sentences += n_batches * self.params.batch_size
         self.print_stats()
         update_lambdas(self.params, self.n_total_iter)
@@ -657,15 +655,6 @@ class TrainerMT(MultiprocessingEventLoop):
                 mean_loss.append(('XE-%s-%s' % (lang, lang), 'xe_costs_%s_%s' % (lang, lang)))
             for lang1, lang2 in self.params.para_directions:
                 mean_loss.append(('XE-%s-%s' % (lang1, lang2), 'xe_costs_%s_%s' % (lang1, lang2)))
-            for lang1, lang2 in self.params.back_directions:
-                mean_loss.append(('XE-BT-%s-%s' % (lang1, lang2), 'xe_costs_bt_%s_%s' % (lang1, lang2)))
-            for lang1, lang2, lang3 in self.params.pivo_directions:
-                mean_loss.append(('XE-%s-%s-%s' % (lang1, lang2, lang3), 'xe_costs_%s_%s_%s' % (lang1, lang2, lang3)))
-            for lang in self.params.langs:
-                mean_loss.append(('LME-%s' % lang, 'lme_costs_%s' % lang))
-                mean_loss.append(('LMD-%s' % lang, 'lmd_costs_%s' % lang))
-                mean_loss.append(('LMER-%s' % lang, 'lmer_costs_%s' % lang))
-                mean_loss.append(('ENC-L2-%s' % lang, 'enc_norms_%s' % lang))
 
             s_iter = "%7i - " % self.n_iter
             s_stat = ' || '.join(['{}: {:7.4f}'.format(k, np.mean(self.stats[l]))
@@ -685,15 +674,8 @@ class TrainerMT(MultiprocessingEventLoop):
             lrs = self.get_lrs(['enc', 'dec'])
             s_lr = " - LR " + ",".join("{}={:.4e}".format(k, lr) for k, lr in lrs.items())
 
-            # generation time
-            if len(self.params.pivo_directions) > 0:
-                s_time = " - Sentences generation time: % .2fs (%.2f%%)" % (self.gen_time, 100. * self.gen_time / diff)
-                self.gen_time = 0
-            else:
-                s_time = ""
-
             # log speed + stats
-            logger.info(s_iter + s_speed + s_stat + s_lr + s_time)
+            logger.info(s_iter + s_speed + s_stat + s_lr)
 
     def save_model(self, name):
         """
