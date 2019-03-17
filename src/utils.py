@@ -71,10 +71,6 @@ def initialize_exp(params, logger_filename='train.log'):
         torch.manual_seed(params.seed)
         torch.cuda.manual_seed(params.seed)
 
-    # environment variables
-    if 'pivo_directions' in params and len(params.pivo_directions) > 0:
-        os.environ["OMP_NUM_THREADS"] = "2"
-        os.environ["MKL_NUM_THREADS"] = "2"
 
     # create a logger
     logger = create_logger(os.path.join(params.dump_path, logger_filename))
@@ -296,16 +292,8 @@ def update_lambdas(params, n_total_iter):
         params.lambda_xe_mono = update_lambda_value(params.lambda_xe_mono_config, n_total_iter)
     if params.lambda_xe_para_config is not None:
         params.lambda_xe_para = update_lambda_value(params.lambda_xe_para_config, n_total_iter)
-    if params.lambda_xe_back_config is not None:
-        params.lambda_xe_back = update_lambda_value(params.lambda_xe_back_config, n_total_iter)
-    if params.lambda_xe_otfd_config is not None:
-        params.lambda_xe_otfd = update_lambda_value(params.lambda_xe_otfd_config, n_total_iter)
-    if params.lambda_xe_otfa_config is not None:
-        params.lambda_xe_otfa = update_lambda_value(params.lambda_xe_otfa_config, n_total_iter)
     if params.lambda_dis_config is not None:
         params.lambda_dis = update_lambda_value(params.lambda_dis_config, n_total_iter)
-    if params.lambda_lm_config is not None:
-        params.lambda_lm = update_lambda_value(params.lambda_lm_config, n_total_iter)
 
 
 def get_mask(lengths, all_words, expand=None, ignore_first=False, batch_first=False, cuda=True):
