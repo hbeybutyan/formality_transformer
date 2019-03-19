@@ -1,6 +1,3 @@
-# Copyright (c) 2018-present, Facebook, Inc.
-# All rights reserved.
-#
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 #
@@ -13,9 +10,8 @@ import torch
 from torch.nn import functional as F
 from torch.nn.utils import clip_grad_norm_
 
-from .utils import reverse_sentences, clip_parameters
+from .utils import clip_parameters
 from .utils import get_optimizer, parse_lambda_config, update_lambdas
-from .model import build_mt_model
 from .multiprocessing_event_loop import MultiprocessingEventLoop
 from .test import test_sharing
 
@@ -434,216 +430,6 @@ class TrainerMT(MultiprocessingEventLoop):
         self.stats['processed_s'] += len2.size(0)
         self.stats['processed_w'] += len2.sum()
 
-    def otf_start_multiprocessing(self):
-        logger.info("Starting subprocesses for OTF generation ...")
-
-        # initialize subprocesses
-        for rank in range(self.num_replicas):
-            self.call_async(rank, '_async_otf_init', params=self.params)
-
-    def _async_otf_init(self, rank, device_id, params):
-        # build model on subprocess
-
-        from copy import deepcopy
-        params = deepcopy(params)
-        self.params = params
-        self.params.cpu_thread = True
-        self.data = None  # do not load data in the CPU threads
-        self.iterators = {}
-        self.encoder, self.decoder, _, _ = build_mt_model(self.params, self.data, cuda=False)
-
-    def otf_sync_params(self):
-        # logger.info("Syncing encoder and decoder params for OTF generation ...")
-
-        def get_flat_params(module):
-            return torch._utils._flatten_dense_tensors(
-                [p.data for p in module.parameters()])
-
-        encoder_params = get_flat_params(self.encoder).cpu().share_memory_()
-        decoder_params = get_flat_params(self.decoder).cpu().share_memory_()
-
-        for rank in range(self.num_replicas):
-            self.call_async(rank, '_async_otf_sync_params', encoder_params=encoder_params,
-                            decoder_params=decoder_params)
-
-    def _async_otf_sync_params(self, rank, device_id, encoder_params, decoder_params):
-
-        def set_flat_params(module, flat):
-            params = [p.data for p in module.parameters()]
-            for p, f in zip(params, torch._utils._unflatten_dense_tensors(flat, params)):
-                p.copy_(f)
-
-        # copy parameters back into modules
-        set_flat_params(self.encoder, encoder_params)
-        set_flat_params(self.decoder, decoder_params)
-
-    def otf_bt_gen_async(self, init_cache_size=None):
-        logger.info("Populating initial OTF generation cache ...")
-        if init_cache_size is None:
-            init_cache_size = self.num_replicas
-        cache = [
-            self.call_async(rank=i % self.num_replicas, action='_async_otf_bt_gen',
-                            result_type='otf_gen', fetch_all=True,
-                            batches=self.get_worker_batches())
-            for i in range(init_cache_size)
-        ]
-        while True:
-            results = cache[0].gen()
-            for rank, _ in results:
-                cache.pop(0)  # keep the cache a fixed size
-                cache.append(
-                    self.call_async(rank=rank, action='_async_otf_bt_gen',
-                                    result_type='otf_gen', fetch_all=True,
-                                    batches=self.get_worker_batches())
-                )
-            for _, result in results:
-                yield result
-
-    def get_worker_batches(self):
-        """
-        Create batches for CPU threads.
-        """
-        batches = []
-
-        for direction in self.params.pivo_directions:
-
-            lang1, lang2, lang3 = direction
-
-            # 2-lang back-translation - autoencoding
-            if lang1 != lang2 == lang3:
-                if self.params.lambda_xe_otfa > 0:
-                    (sent1, len1), (sent3, len3) = self.get_batch('otf', lang1, lang3)
-            # 2-lang back-translation - parallel data
-            elif lang1 == lang3 != lang2:
-                if self.params.lambda_xe_otfd > 0:
-                    sent1, len1 = self.get_batch('otf', lang1, None)
-                    sent3, len3 = sent1, len1
-            # 3-lang back-translation - parallel data
-            else:
-                assert lang1 != lang2 and lang2 != lang3 and lang1 != lang3
-                if self.params.lambda_xe_otfd > 0:
-                    (sent1, len1), (sent3, len3) = self.get_batch('otf', lang1, lang3)
-
-            batches.append({
-                'direction': direction,
-                'sent1': sent1,
-                'sent3': sent3,
-                'len1': len1,
-                'len3': len3,
-            })
-
-        return batches
-
-    def _async_otf_bt_gen(self, rank, device_id, batches):
-        """
-        On the fly back-translation (generation step).
-        """
-        params = self.params
-        self.encoder.eval()
-        self.decoder.eval()
-
-        results = []
-
-        with torch.no_grad():
-
-            for batch in batches:
-                lang1, lang2, lang3 = batch['direction']
-                lang1_id = params.lang2id[lang1]
-                lang2_id = params.lang2id[lang2]
-                sent1, len1 = batch['sent1'], batch['len1']
-                sent3, len3 = batch['sent3'], batch['len3']
-
-                # lang1 -> lang2
-                encoded = self.encoder(sent1, len1, lang_id=lang1_id)
-                max_len = int(1.5 * len1.max() + 10)
-                if params.otf_sample == -1:
-                    sent2, len2, _ = self.decoder.generate(encoded, lang_id=lang2_id, max_len=max_len)
-                else:
-                    sent2, len2, _ = self.decoder.generate(encoded, lang_id=lang2_id, max_len=max_len,
-                                                           sample=True, temperature=params.otf_sample)
-
-                # keep cached batches on CPU for easier transfer
-                assert not any(x.is_cuda for x in [sent1, sent2, sent3])
-                results.append(dict([
-                    ('lang1', lang1), ('sent1', sent1), ('len1', len1),
-                    ('lang2', lang2), ('sent2', sent2), ('len2', len2),
-                    ('lang3', lang3), ('sent3', sent3), ('len3', len3),
-                ]))
-
-        return (rank, results)
-
-    def otf_bt(self, batch, lambda_xe, backprop_temperature):
-        """
-        On the fly back-translation.
-        """
-        params = self.params
-        lang1, sent1, len1 = batch['lang1'], batch['sent1'], batch['len1']
-        lang2, sent2, len2 = batch['lang2'], batch['sent2'], batch['len2']
-        lang3, sent3, len3 = batch['lang3'], batch['sent3'], batch['len3']
-        if lambda_xe == 0:
-            logger.warning("Unused generated CPU batch for direction %s-%s-%s!" % (lang1, lang2, lang3))
-            return
-        lang1_id = params.lang2id[lang1]
-        lang2_id = params.lang2id[lang2]
-        lang3_id = params.lang2id[lang3]
-        direction = (lang1, lang2, lang3)
-        assert direction in params.pivo_directions
-        loss_fn = self.decoder.loss_fn[lang3_id]
-        n_words2 = params.n_words[lang2_id]
-        n_words3 = params.n_words[lang3_id]
-        self.encoder.train()
-        self.decoder.train()
-
-        # prepare batch
-        if params.cuda:
-            sent1, sent2, sent3 = sent1.cuda(), sent2.cuda(), sent3.cuda()
-        bs = sent1.size(1)
-
-        if backprop_temperature == -1:
-            # lang2 -> lang3
-            encoded = self.encoder(sent2, len2, lang_id=lang2_id)
-        else:
-            # lang1 -> lang2
-            encoded = self.encoder(sent1, len1, lang_id=lang1_id)
-            scores = self.decoder(encoded, sent2[:-1], lang_id=lang2_id)
-            assert scores.size() == (len2.max() - 1, bs, n_words2)
-
-            # lang2 -> lang3
-            if params.cuda:
-                bos = torch.cuda.FloatTensor(1, bs, n_words2).zero_()
-            else:
-                bos = torch.FloatTensor(1, bs, n_words2).zero_()
-            bos[0, :, params.bos_index[lang2_id]] = 1
-            sent2_input = torch.cat([bos, F.softmax(scores / backprop_temperature, -1)], 0)
-            encoded = self.encoder(sent2_input, len2, lang_id=lang2_id)
-
-        # cross-entropy scores / loss
-        scores = self.decoder(encoded, sent3[:-1], lang_id=lang3_id)
-        xe_loss = loss_fn(scores.view(-1, n_words3), sent3[1:].view(-1))
-        self.stats['xe_costs_%s_%s_%s' % direction].append(xe_loss.item())
-        assert lambda_xe > 0
-        loss = lambda_xe * xe_loss
-
-        # check NaN
-        if (loss != loss).data.any():
-            logger.error("NaN detected")
-            exit()
-
-        # optimizer
-        assert params.otf_update_enc or params.otf_update_dec
-        to_update = []
-        if params.otf_update_enc:
-            to_update.append('enc')
-        if params.otf_update_dec:
-            to_update.append('dec')
-        self.zero_grad(to_update)
-        loss.backward()
-        self.update_params(to_update)
-
-        # number of processed sentences / words
-        self.stats['processed_s'] += len3.size(0)
-        self.stats['processed_w'] += len3.sum()
-
     def iter(self):
         """
         End of iteration.
@@ -700,7 +486,6 @@ class TrainerMT(MultiprocessingEventLoop):
             'enc': self.encoder,
             'dec': self.decoder,
             'dis': self.discriminator,
-            'lm': self.lm,
         }, path)
 
     def save_checkpoint(self):
@@ -711,11 +496,9 @@ class TrainerMT(MultiprocessingEventLoop):
             'encoder': self.encoder,
             'decoder': self.decoder,
             'discriminator': self.discriminator,
-            'lm': self.lm,
             'enc_optimizer': self.enc_optimizer,
             'dec_optimizer': self.dec_optimizer,
             'dis_optimizer': self.dis_optimizer,
-            'lm_optimizer': self.lm_optimizer,
             'epoch': self.epoch,
             'n_total_iter': self.n_total_iter,
             'best_metrics': self.best_metrics,
