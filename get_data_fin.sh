@@ -64,15 +64,15 @@ SRC_VOCAB=$MONO_PATH/vocab.f.$CODES
 TGT_VOCAB=$MONO_PATH/vocab.in.$CODES
 FULL_VOCAB=$MONO_PATH/vocab.f-in.$CODES
 
-PARA_SRC=$PARA_PATH/formal.train
-PARA_TGT=$PARA_PATH/informal.train
+PARA_SRC=$PARA_PATH/train.f
+PARA_TGT=$PARA_PATH/train.in
 PARA_SRC_RAW=$PARA_PATH/formal.train.raw
 PARA_TGT_RAW=$PARA_PATH/informal.train.raw
 
-SRC_VALID=$PARA_PATH/formal.val
-TGT_VALID=$PARA_PATH/informal.val
-SRC_TEST=$PARA_PATH/formal.test
-TGT_TEST=$PARA_PATH/informal.test
+SRC_VALID=$PARA_PATH/val.f
+TGT_VALID=$PARA_PATH/val.in
+SRC_TEST=$PARA_PATH/test.f
+TGT_TEST=$PARA_PATH/test.in
 
 SRC_VALID_RAW=$PARA_PATH/formal.val_raw
 TGT_VALID_RAW=$PARA_PATH/informal.val_raw
