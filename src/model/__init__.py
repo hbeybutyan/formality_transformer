@@ -1,6 +1,3 @@
-# Copyright (c) 2018-present, Facebook, Inc.
-# All rights reserved.
-#
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 #
@@ -51,7 +48,7 @@ def check_mt_model_params(params):
             assert not (params.freeze_enc_emb and params.freeze_dec_emb)
         assert not (params.share_decpro_emb and params.freeze_dec_emb)
         assert not (params.share_decpro_emb and not params.pretrained_out)
-        assert not params.pretrained_out or params.lstm_proj or getattr(params, 'transformer', False) or params.emb_dim == params.hidden_dim
+        assert not params.pretrained_out or params.emb_dim == params.hidden_dim
 
     # discriminator parameters
     assert params.dis_layers >= 0

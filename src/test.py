@@ -1,12 +1,6 @@
-# Copyright (c) 2018-present, Facebook, Inc.
-# All rights reserved.
-#
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 #
-
-from .model import LSTM_PARAMS, BILSTM_PARAMS
-
 
 hashs = {}
 
@@ -64,12 +58,6 @@ def test_sharing(encoder, decoder, params):
     elif params.share_lang_emb:
         for i in range(1, params.n_langs):
             assert_equal(decoder.embeddings[i].weight, decoder.embeddings[0].weight)
-    # projection layers between LSTM and output embeddings
-    if params.lstm_proj:
-        if params.share_lstm_proj:
-            for i in range(1, params.n_langs):
-                assert_equal(decoder.lstm_proj_layers[i].weight, decoder.lstm_proj_layers[0].weight)
-                assert_equal(decoder.lstm_proj_layers[i].bias, decoder.lstm_proj_layers[0].bias)
     # projection layers
     if params.share_decpro_emb:
         for i in range(params.n_langs):

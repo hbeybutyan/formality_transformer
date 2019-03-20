@@ -1,6 +1,3 @@
-# Copyright (c) 2018-present, Facebook, Inc.
-# All rights reserved.
-#
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 #
@@ -154,11 +151,8 @@ def load_para_data(params, data):
         datasets = []
 
         for name, path in zip(['train', 'valid', 'test'], paths):
-            if path == '':
-                assert name == 'train'
-                datasets.append((name, None))
-                continue
-            assert name != 'train' or params.n_para != 0
+            assert path != ''
+            assert params.n_para != 0
 
             # load data
             data1 = load_binarized(path.replace('XX', lang1), params)
@@ -199,56 +193,6 @@ def load_para_data(params, data):
 
         assert (lang1, lang2) not in data['para']
         data['para'][(lang1, lang2)] = {k: v for k, v in datasets}
-
-    logger.info('')
-
-
-def load_back_data(params, data):
-    """
-    Load back-parallel data.
-    """
-    assert not (len(params.back_dataset) == 0) ^ (params.n_back == 0)
-
-    for (lang1, lang2), (src_path, tgt_path) in params.back_dataset.items():
-
-        assert lang1 in params.langs and lang2 in params.langs
-        assert os.path.isfile(src_path)
-        assert os.path.isfile(tgt_path)
-
-        logger.info('============ Back-parallel data (%s - %s)' % (lang1, lang2))
-
-        # load data
-        data1 = load_binarized(src_path, params)
-        data2 = load_binarized(tgt_path, params)
-        set_parameters(params, data1['dico'])
-        set_parameters(params, data2['dico'])
-
-        # set / check dictionaries
-        if lang1 not in data['dico']:
-            data['dico'][lang1] = data1['dico']
-        else:
-            assert data['dico'][lang1] == data1['dico']
-        if lang2 not in data['dico']:
-            data['dico'][lang2] = data2['dico']
-        else:
-            assert data['dico'][lang2] == data2['dico']
-
-        # parallel data
-        para_data = ParallelDataset(
-            data1['sentences'], data1['positions'], data['dico'][lang1], params.lang2id[lang1],
-            data2['sentences'], data2['positions'], data['dico'][lang2], params.lang2id[lang2],
-            params
-        )
-
-        # remove too long sentences
-        para_data.remove_long_sentences(params.max_len)
-
-        # select a subset of sentences
-        if params.n_back != -1:
-            para_data.select_data(0, params.n_back)
-
-        assert (lang1, lang2) not in data['back']
-        data['back'][(lang1, lang2)] = para_data
 
     logger.info('')
 
@@ -336,8 +280,8 @@ def check_all_data_params(params):
     assert not (params.n_para == 0) ^ (all(v[0] == '' for v in params.para_dataset.values()))
     for (lang1, lang2), (train_path, valid_path, test_path) in params.para_dataset.items():
         assert lang1 < lang2 and lang1 in params.langs and lang2 in params.langs
-        assert train_path == '' or os.path.isfile(train_path.replace('XX', lang1))
-        assert train_path == '' or os.path.isfile(train_path.replace('XX', lang2))
+        assert os.path.isfile(train_path.replace('XX', lang1))
+        assert os.path.isfile(train_path.replace('XX', lang2))
         assert os.path.isfile(valid_path.replace('XX', lang1))
         assert os.path.isfile(valid_path.replace('XX', lang2))
         assert os.path.isfile(test_path.replace('XX', lang1))
@@ -345,18 +289,18 @@ def check_all_data_params(params):
 
     # check parallel directions
     params.para_directions = [x.split('-') for x in params.para_directions.split(',') if len(x) > 0]
-    if len(params.para_directions) > 0:
-        assert params.n_para != 0
-        assert type(params.para_directions) is list
-        assert all(len(x) == 2 for x in params.para_directions)
-        params.para_directions = [tuple(x) for x in params.para_directions]
-        assert len(params.para_directions) == len(set(params.para_directions))
-        # check that every direction has an associated train set
-        for lang1, lang2 in params.para_directions:
-            assert lang1 in params.langs and lang2 in params.langs
-            k = (lang1, lang2) if lang1 < lang2 else (lang2, lang1)
-            assert k in params.para_dataset
-            assert params.para_dataset[k][0] != ''
+    assert len(params.para_directions) > 0
+    assert params.n_para != 0
+    assert type(params.para_directions) is list
+    assert all(len(x) == 2 for x in params.para_directions)
+    params.para_directions = [tuple(x) for x in params.para_directions]
+    assert len(params.para_directions) == len(set(params.para_directions))
+    # check that every direction has an associated train set
+    for lang1, lang2 in params.para_directions:
+        assert lang1 in params.langs and lang2 in params.langs
+        k = (lang1, lang2) if lang1 < lang2 else (lang2, lang1)
+        assert k in params.para_dataset
+        assert params.para_dataset[k][0] != ''
 
     # check mono directions
     params.mono_directions = [x for x in params.mono_directions.split(',') if len(x) > 0]
@@ -406,7 +350,7 @@ def check_all_data_params(params):
         assert 0 <= params.word_blank < 1
 
 
-def load_data(params, mono_only=False):
+def load_data(params):
     """
     Load parallel / monolingual data.
     We start with the parallel test set, which defines the dictionaries.
@@ -416,9 +360,8 @@ def load_data(params, mono_only=False):
         - vocab (dictionary of vocabularies)
         - mono (dictionary of monolingual datasets (train, valid, test))
         - para (dictionary of parallel datasets (train, valid, test))
-        - back (dictionary of parallel datasets (train only))
     """
-    data = {'dico': {}, 'mono': {}, 'para': {}, 'back': {}}
+    data = {'dico': {}, 'mono': {}, 'para': {}}
 
     # parallel datasets
     load_para_data(params, data)

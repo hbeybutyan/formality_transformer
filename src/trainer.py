@@ -65,11 +65,6 @@ class TrainerMT(MultiprocessingEventLoop):
             for lang1, lang2 in self.data['para'].keys():
                 for data_type in ['valid', 'test']:
                     self.VALIDATION_METRICS.append('bleu_%s_%s_%s' % (lang1, lang2, data_type))
-            for lang1, lang2, lang3 in self.params.pivo_directions:
-                if lang1 == lang3:
-                    continue
-                for data_type in ['valid', 'test']:
-                    self.VALIDATION_METRICS.append('bleu_%s_%s_%s_%s' % (lang1, lang2, lang3, data_type))
             self.stopping_criterion = None
             self.best_stopping_criterion = None
         else:
@@ -123,17 +118,14 @@ class TrainerMT(MultiprocessingEventLoop):
             dico = self.data['dico'][lang]
             self.bpe_end.append(np.array([not dico[i].endswith('@@') for i in range(len(dico))]))
 
-    def get_iterator(self, iter_name, lang1, lang2, back):
+    def get_iterator(self, iter_name, lang1, lang2):
         """
         Create a new iterator for a dataset.
         """
-        assert back is False or lang2 is not None
-        key = ','.join([x for x in [iter_name, lang1, lang2] if x is not None]) + ('_back' if back else '')
+        key = ','.join([x for x in [iter_name, lang1, lang2] if x is not None])
         logger.info("Creating new training %s iterator ..." % key)
         if lang2 is None:
             dataset = self.data['mono'][lang1]['train']
-        elif back:
-            dataset = self.data['back'][(lang1, lang2)]
         else:
             k = (lang1, lang2) if lang1 < lang2 else (lang2, lang1)
             dataset = self.data['para'][k]['train']
@@ -141,23 +133,22 @@ class TrainerMT(MultiprocessingEventLoop):
         self.iterators[key] = iterator
         return iterator
 
-    def get_batch(self, iter_name, lang1, lang2, back=False):
+    def get_batch(self, iter_name, lang1, lang2):
         """
         Return a batch of sentences from a dataset.
         """
-        assert back is False or lang2 is not None
         assert lang1 in self.params.langs
         assert lang2 is None or lang2 in self.params.langs
-        key = ','.join([x for x in [iter_name, lang1, lang2] if x is not None]) + ('_back' if back else '')
+        key = ','.join([x for x in [iter_name, lang1, lang2] if x is not None])
         iterator = self.iterators.get(key, None)
         if iterator is None:
-            iterator = self.get_iterator(iter_name, lang1, lang2, back)
+            iterator = self.get_iterator(iter_name, lang1, lang2)
         try:
             batch = next(iterator)
         except StopIteration:
-            iterator = self.get_iterator(iter_name, lang1, lang2, back)
+            iterator = self.get_iterator(iter_name, lang1, lang2)
             batch = next(iterator)
-        return batch if (lang2 is None or lang1 < lang2 or back) else batch[::-1]
+        return batch if (lang2 is None or lang1 < lang2) else batch[::-1]
 
     def word_shuffle(self, x, l, lang_id):
         """
@@ -356,12 +347,11 @@ class TrainerMT(MultiprocessingEventLoop):
         self.update_params('dis')
         clip_parameters(self.discriminator, self.params.dis_clip)
 
-    def enc_dec_step(self, lang1, lang2, lambda_xe, back=False):
+    def enc_dec_step(self, lang1, lang2, lambda_xe):
         """
         Source / target autoencoder training (parallel data):
             - encoders / decoders training on cross-entropy
             - encoders training on discriminator feedback
-            - encoders training on L2 loss (seq2seq only, not for attention)
         """
         params = self.params
         assert lang1 in params.langs and lang2 in params.langs
@@ -375,9 +365,7 @@ class TrainerMT(MultiprocessingEventLoop):
             self.discriminator.eval()
 
         # batch
-        if back:
-            (sent1, len1), (sent2, len2) = self.get_batch('encdec', lang1, lang2, back=True)
-        elif lang1 == lang2:
+        if lang1 == lang2:
             sent1, len1 = self.get_batch('encdec', lang1, None)
             sent2, len2 = sent1, len1
         else:
@@ -396,10 +384,7 @@ class TrainerMT(MultiprocessingEventLoop):
         # cross-entropy scores / loss
         scores = self.decoder(encoded, sent2[:-1], lang2_id)
         xe_loss = loss_fn(scores.view(-1, n_words), sent2[1:].view(-1))
-        if back:
-            self.stats['xe_costs_bt_%s_%s' % (lang1, lang2)].append(xe_loss.item())
-        else:
-            self.stats['xe_costs_%s_%s' % (lang1, lang2)].append(xe_loss.item())
+        self.stats['xe_costs_%s_%s' % (lang1, lang2)].append(xe_loss.item())
 
         # discriminator feedback loss
         if params.lambda_dis:

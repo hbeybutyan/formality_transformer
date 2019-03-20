@@ -1,6 +1,3 @@
-# Copyright (c) 2018-present, Facebook, Inc.
-# All rights reserved.
-#
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 #
@@ -37,8 +34,6 @@ def get_parser():
                         help="Number of layers in the decoders")
     parser.add_argument("--hidden_dim", type=int, default=512,
                         help="Hidden layer size")
-    parser.add_argument("--lstm_proj", type=bool_flag, default=False,
-                        help="Projection layer between decoder LSTM and output layer")
     parser.add_argument("--dropout", type=float, default=0,
                         help="Dropout")
     parser.add_argument("--label-smoothing", type=float, default=0,
@@ -62,13 +57,13 @@ def get_parser():
     parser.add_argument("--share_encdec_emb", type=bool_flag, default=False,
                         help="Share encoder embeddings / decoder embeddings")
     parser.add_argument("--share_decpro_emb", type=bool_flag, default=False,
-                        help="Share decoder embeddings / decoder output projection")
+                        help="Share decoder embeddings with decoder output projection")
     parser.add_argument("--share_output_emb", type=bool_flag, default=False,
-                        help="Share decoder output embeddings")
+                        help="Share decoder output embeddings of different languages")
     parser.add_argument("--share_enc", type=int, default=0,
-                        help="Number of layers to share in the encoders")
+                        help="Number of layers to share in the encoders of different languages")
     parser.add_argument("--share_dec", type=int, default=0,
-                        help="Number of layers to share in the decoders")
+                        help="Number of layers to share in the decoders of different languages")
     # encoder input perturbation
     parser.add_argument("--word_shuffle", type=float, default=0,
                         help="Randomly shuffle input words (0 to disable)")
