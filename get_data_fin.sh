@@ -66,8 +66,8 @@ FULL_VOCAB=$MONO_PATH/vocab.f-in.$CODES
 
 PARA_SRC=$PARA_PATH/train.f
 PARA_TGT=$PARA_PATH/train.in
-PARA_SRC_RAW=$PARA_PATH/formal.train.raw
-PARA_TGT_RAW=$PARA_PATH/informal.train.raw
+PARA_SRC_RAW=$PARA_PATH/formal.train_raw
+PARA_TGT_RAW=$PARA_PATH/informal.train_raw
 
 SRC_VALID=$PARA_PATH/val.f
 TGT_VALID=$PARA_PATH/val.in
@@ -303,8 +303,8 @@ cat $PARA_TGT.eandm >> $PARA_TGT_RAW
 #tar -xzf dev.tgz
 
 # check valid and test files are here
-if ! [[ -f "$PARA_SRC" ]]; then echo "$PARA_SRC is not found!"; exit; fi
-if ! [[ -f "$PARA_TGT" ]]; then echo "$PARA_TGT is not found!"; exit; fi
+if ! [[ -f "$PARA_SRC_RAW" ]]; then echo "$PARA_SR_RAWC is not found!"; exit; fi
+if ! [[ -f "$PARA_TGT_RAW" ]]; then echo "$PARA_TGT_RAW is not found!"; exit; fi
 if ! [[ -f "$SRC_VALID_RAW" ]]; then echo "$SRC_VALID_RAW is not found!"; exit; fi
 if ! [[ -f "$TGT_VALID_RAW" ]]; then echo "$TGT_VALID_RAW is not found!"; exit; fi
 if ! [[ -f "$SRC_TEST_RAW" ]]; then echo "$SRC_TEST_RAW is not found!"; exit; fi
