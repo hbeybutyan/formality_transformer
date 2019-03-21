@@ -11,8 +11,7 @@ set -e
 # Data preprocessing configuration
 #
 
-N_MONO=6000000  # number of monolingual sentences for each language
-#N_MONO=1082  # number of monolingual sentences for each language
+N_MONO=1000000  # number of monolingual sentences for each language
 CODES=60000      # number of BPE codes
 N_THREADS=48     # number of threads in data preprocessing
 N_EPOCHS=10      # number of fastText epochs
