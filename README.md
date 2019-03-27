@@ -34,7 +34,7 @@ After datasetas are obtained you need to classify the sentences in the L6 corpus
 
 Use the following command with corresponding parameters to train the model:
 
-'''
+```
 python main.py 
 
 ## main parameters
@@ -135,13 +135,13 @@ PARA_DATASET='f-in:./data/para/train.XX.60000.pth,./data/para/val.XX.60000.pth,.
 PRETRAINED='./data/mono/all.f-in.60000.vec'
 
 
-'''
+```
 
 With all this in mind a good candidate for a training command is:
 
-'''
+```
 python main.py --exp_name test --n_enc_layers 4 --n_dec_layers 4 --share_enc 3 --share_dec 3 --share_lang_emb True --share_output_emb True --langs 'f,in' --n_mono -1 --n_para -1 --n_dis 1 --mono_dataset 'f:./data/mono/all.f.tok.60000.pth,,;in:./data/mono/all.in.tok.60000.pth,,' --para_dataset 'f-in:./data/para/train.XX.60000.pth,./data/para/val.XX.60000.pth,./data/para/test.XX.60000.pth' --mono_directions 'f,in' ----para_directions 'f-in' word_shuffle 3 --word_dropout 0.1 --word_blank 0.2 --pretrained_emb './data/mono/all.f-in.60000.vec' --pretrained_out True --lambda_xe_mono '0:1,100000:0.1,300000:0' --lambda_xe_para 1 --lambda_dis 1 --enc_optimizer adam,lr=0.0001 --epoch_size 50000 --stopping_criterion bleu_f_in_valid,10
-'''
+```
 
 Here are used code samples from the 
 [Phrase-Based & Neural Unsupervised Machine Translation](https://github.com/facebookresearch/UnsupervisedMT).
