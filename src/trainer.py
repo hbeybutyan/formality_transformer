@@ -415,6 +415,76 @@ class TrainerMT(MultiprocessingEventLoop):
         self.stats['processed_s'] += len2.size(0)
         self.stats['processed_w'] += len2.sum()
 
+
+    def enc_dec_step_mono(self, lang1, lang2, lambda_xe):
+        """
+        Source / source autoencoder training:
+            - encoders / decoders training on cross-entropy
+        """
+        params = self.params
+        assert lang1 in params.langs and lang2 in params.langs
+        lang1_id = params.lang2id[lang1]
+        lang2_id = params.lang2id[lang2]
+        loss_fn = self.decoder.loss_fn[lang2_id]
+        n_words = params.n_words[lang2_id]
+        self.encoder.train()
+        self.decoder.train()
+        if self.discriminator is not None:
+            self.discriminator.eval()
+
+        # batch
+        if lang1 == lang2:
+            sent1, len1 = self.get_batch('encdec', lang1, None)
+            sent2, len2 = sent1, len1
+        else:
+            (sent1, len1), (sent2, len2) = self.get_batch('encdec', lang1, lang2)
+
+        # prepare the encoder / decoder inputs
+        if lang1 == lang2:
+            sent1, len1 = self.add_noise(sent1, len1, lang1_id)
+        if params.cuda:
+            sent1, sent2 = sent1.cuda(), sent2.cuda()
+
+        # encoded states
+        encoded = self.encoder(sent1, len1, lang1_id)
+        #self.stats['enc_norms_%s' % lang1].append(encoded.dis_input.data.norm(2, 1).mean().item())
+
+        # cross-entropy scores / loss
+        sent_back, len_back, _ = self.decoder.generate(encoded, lang2_id)
+        encoded_back = self.encoder(sent_back, len_back, lang1_id)
+        scores_back = self.decoder(encoded_back, sent1[:-1], lang1_id)
+        xe_loss = loss_fn(scores_back.view(-1, n_words), sent1[1:].view(-1))
+        self.stats['xe_costs_%s_%s' % (lang1, lang2)].append(xe_loss.item())
+
+        # discriminator feedback loss
+        if params.lambda_dis:
+            predictions = self.discriminator(encoded.dis_input.view(-1, encoded.dis_input.size(-1)))
+            fake_y = torch.LongTensor(predictions.size(0)).random_(1, params.n_langs)
+            fake_y = (fake_y + lang1_id) % params.n_langs
+            if params.cuda:
+                fake_y = fake_y.cuda()
+            dis_loss = F.cross_entropy(predictions, fake_y)
+
+        # total loss
+        assert lambda_xe > 0
+        loss = lambda_xe * xe_loss
+        if params.lambda_dis:
+            loss = loss + params.lambda_dis * dis_loss
+
+        # check NaN
+        if (loss != loss).data.any():
+            logger.error("NaN detected")
+            exit()
+
+        # optimizer
+        self.zero_grad(['enc', 'dec'])
+        loss.backward()
+        self.update_params(['enc', 'dec'])
+
+        # number of processed sentences / words
+        self.stats['processed_s'] += len2.size(0)
+        self.stats['processed_w'] += len2.sum()
+
     def iter(self):
         """
         End of iteration.

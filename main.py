@@ -119,6 +119,8 @@ def get_parser():
                         help="Sort sentences by size during the training")
     parser.add_argument("--lambda_xe_mono", type=str, default="0",
                         help="Cross-entropy reconstruction coefficient (autoencoding)")
+    parser.add_argument("--lambda_xe_2_way", type=str, default="0",
+                        help="Cross-entropy 2 way reconstruction coefficient (lang1 -> lang2 -> lang1)")
     parser.add_argument("--lambda_xe_para", type=str, default="0",
                         help="Cross-entropy reconstruction coefficient (parallel data)")
     parser.add_argument("--lambda_dis", type=str, default="0",
@@ -213,6 +215,10 @@ def main(params):
             if params.lambda_xe_para > 0:
                 for lang1, lang2 in params.para_directions:
                     trainer.enc_dec_step(lang1, lang2, params.lambda_xe_para)
+            # 2 way training
+            if params.lambda_xe_2_way > 0:
+                for lang1, lang2 in params.mono_directions:
+                    trainer.enc_dec_step_mono(lang1, lang2, params.lambda_xe_2_way)
 
             trainer.iter()
 
