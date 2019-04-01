@@ -108,6 +108,7 @@ class TrainerMT(MultiprocessingEventLoop):
         parse_lambda_config(params, 'lambda_xe_mono')
         parse_lambda_config(params, 'lambda_xe_para')
         parse_lambda_config(params, 'lambda_dis')
+        parse_lambda_config(params, 'lambda_xe_2_way')
 
     def init_bpe(self):
         """
