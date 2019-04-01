@@ -217,7 +217,7 @@ def main(params):
                     trainer.enc_dec_step(lang1, lang2, params.lambda_xe_para)
             # 2 way training
             if params.lambda_xe_2_way > 0:
-                for lang1, lang2 in params.mono_directions:
+                for lang1, lang2 in params.para_directions:
                     trainer.enc_dec_step_mono(lang1, lang2, params.lambda_xe_2_way)
 
             trainer.iter()
