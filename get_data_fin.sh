@@ -11,7 +11,7 @@ set -e
 # Data preprocessing configuration
 #
 
-N_MONO=1000000  # number of monolingual sentences for each language
+N_MONO=6000000   # number of monolingual sentences for each language
 CODES=60000      # number of BPE codes
 N_THREADS=48     # number of threads in data preprocessing
 N_EPOCHS=10      # number of fastText epochs
@@ -27,12 +27,14 @@ TOOLS_PATH=$PWD/tools
 DATA_PATH=$PWD/data
 MONO_PATH=$DATA_PATH/mono
 PARA_PATH=$DATA_PATH/para
+VALID_PATH=$PARA_PATH/validation
 
 # create paths
 mkdir -p $TOOLS_PATH
 mkdir -p $DATA_PATH
 mkdir -p $MONO_PATH
 mkdir -p $PARA_PATH
+mkdir -p $VALID_PATH
 
 # moses
 MOSES=$TOOLS_PATH/mosesdecoder
@@ -77,6 +79,14 @@ SRC_VALID_RAW=$PARA_PATH/formal.val_raw
 TGT_VALID_RAW=$PARA_PATH/informal.val_raw
 SRC_TEST_RAW=$PARA_PATH/formal.test_raw
 TGT_TEST_RAW=$PARA_PATH/informal.test_raw
+
+
+SRC_IN_FR_RAW=$VALID_PATH/informal.fr
+REF_F_FR_REF0=$VALID_PATH/formal.ref0.fr
+REF_F_FR_REF1=$VALID_PATH/formal.ref1.fr
+REF_F_FR_REF2=$VALID_PATH/formal.ref2.fr
+REF_F_FR_REF3=$VALID_PATH/formal.ref3.fr
+
 
 
 #
@@ -297,12 +307,11 @@ cat $PARA_TGT.fandr > $PARA_TGT_RAW
 cat $PARA_SRC.eandm >> $PARA_SRC_RAW
 cat $PARA_TGT.eandm >> $PARA_TGT_RAW
 
-
 #echo "Extracting parallel data..."
 #tar -xzf dev.tgz
 
 # check valid and test files are here
-if ! [[ -f "$PARA_SRC_RAW" ]]; then echo "$PARA_SR_RAWC is not found!"; exit; fi
+if ! [[ -f "$PARA_SRC_RAW" ]]; then echo "$PARA_SR_RAW is not found!"; exit; fi
 if ! [[ -f "$PARA_TGT_RAW" ]]; then echo "$PARA_TGT_RAW is not found!"; exit; fi
 if ! [[ -f "$SRC_VALID_RAW" ]]; then echo "$SRC_VALID_RAW is not found!"; exit; fi
 if ! [[ -f "$TGT_VALID_RAW" ]]; then echo "$TGT_VALID_RAW is not found!"; exit; fi
@@ -336,6 +345,34 @@ $UMT_PATH/preprocess.py $FULL_VOCAB $SRC_TEST.$CODES
 $UMT_PATH/preprocess.py $FULL_VOCAB $TGT_TEST.$CODES
 
 
+
+echo "Downloading parallel data for validation..."
+cd $VALID_PATH
+wget -O $SRC_IN_FR_RAW 'https://drive.google.com/uc?export=download&id=1535YHKL6fJZyCkVoLO9QQlR3GgW2NIM5'
+wget -O $REF_F_FR_REF0 'https://drive.google.com/uc?export=download&id=18TMEFPxDuOxHWDVQgFkJTSa0axQgvfMT'
+wget -O $REF_F_FR_REF1 'https://drive.google.com/uc?export=download&id=1f0TUNFAa3Nka9et20HrwK0W53UaWBBiD'
+wget -O $REF_F_FR_REF2 'https://drive.google.com/uc?export=download&id=13EKoe2xjRVfygjJlpMqjitVUpVbDr-5H'
+wget -O $REF_F_FR_REF3 'https://drive.google.com/uc?export=download&id=1KHEpIKDNZcl1nsq2E7F3lfkPMB0CTooC'
+
+# check files are here
+if ! [[ -f "$SRC_IN_FR_RAW" ]]; then echo "$SRC_IN_FR_RAW is not found!"; exit; fi
+if ! [[ -f "$REF_F_FR_REF0" ]]; then echo "$REF_F_FR_REF0 is not found!"; exit; fi
+if ! [[ -f "$REF_F_FR_REF1" ]]; then echo "$REF_F_FR_REF1 is not found!"; exit; fi
+if ! [[ -f "$REF_F_FR_REF2" ]]; then echo "$REF_F_FR_REF2 is not found!"; exit; fi
+if ! [[ -f "$REF_F_FR_REF3" ]]; then echo "$REF_F_FR_REF3 is not found!"; exit; fi
+
+
+echo "Tokenizing source data, the ref files will be used with sacrebleu which does not need preprocessing..."
+
+cat $SRC_IN_FR_RAW | $NORM_PUNC -l en | $REM_NON_PRINT_CHAR | $TOKENIZER -l en -no-escape -threads $N_THREADS > $SRC_IN_FR
+
+echo "Applying BPE to valid and test files..."
+$FASTBPE applybpe $SRC_IN_FR.$CODES $SRC_IN_FR $BPE_CODES $SRC_VOCAB
+
+echo "Binarizing data..."
+rm -f $SRC_IN_FR.$CODES.pth
+$UMT_PATH/preprocess.py $FULL_VOCAB $SRC_IN_FR.$CODES
+
 #
 # Summary
 #
@@ -368,6 +405,6 @@ echo "Concatenated data in: $CONCAT_BPE"
 
 if ! [[ -f "$CONCAT_BPE.vec" ]]; then
   echo "Training fastText on $CONCAT_BPE..."
-  $FASTTEXT skipgram -epoch $N_EPOCHS -minCount 0 -dim 512 -thread $N_THREADS -ws 5 -neg 10 -input $CONCAT_BPE -output $CONCAT_BPE
+  $FASTTEXT skipgram -epoch $N_EPOCHS -minCount 0 -dim 256 -thread $N_THREADS -ws 5 -neg 10 -input $CONCAT_BPE -output $CONCAT_BPE
 fi
 echo "Cross-lingual embeddings in: $CONCAT_BPE.vec"
