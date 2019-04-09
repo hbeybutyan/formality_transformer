@@ -81,7 +81,8 @@ SRC_TEST_RAW=$PARA_PATH/formal.test_raw
 TGT_TEST_RAW=$PARA_PATH/informal.test_raw
 
 
-SRC_IN_FR_RAW=$VALID_PATH/informal.fr
+SRC_IN_FR_RAW=$VALID_PATH/informal.fr_raw
+SRC_IN_FR=$VALID_PATH/informal.fr
 REF_F_FR_REF0=$VALID_PATH/formal.ref0.fr
 REF_F_FR_REF1=$VALID_PATH/formal.ref1.fr
 REF_F_FR_REF2=$VALID_PATH/formal.ref2.fr
