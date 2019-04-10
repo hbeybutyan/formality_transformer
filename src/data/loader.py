@@ -247,6 +247,29 @@ def load_mono_data(params, data):
 
     logger.info('')
 
+def load_generation_set(params, data):
+    """
+    Load generation set.
+    """
+    path = params.generation_set
+    assert os.path.isfile(path)
+    style = params.generation_source_style
+    assert style in params.langs
+    logger.info('============ Generation source style data (%s)' % style)
+
+    # load data
+    style_data = load_binarized(path, params)
+    set_parameters(params, style_data['dico'])
+
+    # set / check dictionary
+    assert data['dico'][style] == style_data['dico']
+
+    # monolingual data
+    return MonolingualDataset(style_data['sentences'], style_data['positions'],
+                                   data['dico'][style], params.lang2id[style], params)
+
+
+
 
 def check_all_data_params(params):
     """

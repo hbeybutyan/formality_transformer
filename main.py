@@ -5,12 +5,12 @@
 import json
 import argparse
 
-from src.data.loader import check_all_data_params, load_data
+from src.data.loader import check_all_data_params, load_data, load_generation_set
 from src.utils import bool_flag, initialize_exp
 from src.model import check_mt_model_params, build_mt_model
 from src.trainer import TrainerMT
 from src.evaluator import EvaluatorMT
-
+from src.generator import Generator
 
 def get_parser():
     # parse parameters
@@ -95,6 +95,10 @@ def get_parser():
                         help="Monolingual dataset (lang1:train1,valid1,test1;lang2:train2,valid2,test2)")
     parser.add_argument("--para_dataset", type=str, default="",
                         help="Parallel dataset (lang1-lang2:train12,valid12,test12;lang1-lang3:train13,valid13,test13)")
+    parser.add_argument("--generation_set", type=str, default="",
+                        help="Set of input sentences to transfer style.")
+    parser.add_argument("--generation_source_style", type=str, default="",
+                        help="Formality of source set used to transform.")
     parser.add_argument("--n_mono", type=int, default=0,
                         help="Number of monolingual sentences (-1 for everything)")
     parser.add_argument("--n_para", type=int, default=0,
@@ -183,6 +187,13 @@ def main(params):
     trainer.reload_checkpoint()
     trainer.test_sharing()  # check parameters sharing
     evaluator = EvaluatorMT(trainer, data, params)
+
+    #generation mode
+    if params.generation_set:
+        for lang1, lang2 in params.para_directions:
+            generator = Generator(trainer, load_generation_set(params, data), params)
+            generator.generate(lang1, lang2)
+        exit()
 
     # evaluation mode
     if params.eval_only:
