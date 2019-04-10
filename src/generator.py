@@ -27,7 +27,7 @@ class Generator(object):
         """
         Create a new iterator for a dataset.
         """
-        dataset = self.data
+        dataset = self.data['gen']
         dataset.batch_size = 32
         for batch in dataset.get_iterator(shuffle=False, group_by_size=False)():
             yield batch if lang1 < lang2 else batch[::-1]
