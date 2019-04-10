@@ -192,7 +192,7 @@ def main(params):
     if params.generation_set:
         for lang1, lang2 in params.para_directions:
             generator = Generator(trainer, load_generation_set(params, data), params)
-            generator.generate(lang1, lang2)
+            generator.generate(lang2, lang1)
         exit()
 
     # evaluation mode

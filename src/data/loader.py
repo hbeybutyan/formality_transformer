@@ -252,7 +252,7 @@ def load_generation_set(params, data):
     Load generation set.
     """
     result = {'dico': {}, 'gen': {}}
-    data['dico'] = data['dico']
+    result['dico'] = data['dico']
     path = params.generation_set
     assert os.path.isfile(path)
     style = params.generation_source_style
