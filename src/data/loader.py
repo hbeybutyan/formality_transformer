@@ -251,6 +251,8 @@ def load_generation_set(params, data):
     """
     Load generation set.
     """
+    result = {'dico': {}, 'gen': {}}
+    data['dico'] = data['dico']
     path = params.generation_set
     assert os.path.isfile(path)
     style = params.generation_source_style
@@ -263,10 +265,9 @@ def load_generation_set(params, data):
 
     # set / check dictionary
     assert data['dico'][style] == style_data['dico']
-
-    # monolingual data
-    return MonolingualDataset(style_data['sentences'], style_data['positions'],
+    result['gen'] = MonolingualDataset(style_data['sentences'], style_data['positions'],
                                    data['dico'][style], params.lang2id[style], params)
+    return result
 
 
 
