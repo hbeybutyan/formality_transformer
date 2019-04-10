@@ -48,9 +48,9 @@ class Generator(object):
         for batch in self.get_iterator(lang1, lang2):
 
             # batch
-            (sent1, len1), (sent2, len2) = batch
+            sent1, len1 = batch
             if params.cuda:
-                sent1, sent2 = sent1.cuda(), sent2.cuda()
+                sent1 = sent1.cuda()
 
             # encode / generate
             encoded = self.encoder(sent1, len1, lang1_id)
