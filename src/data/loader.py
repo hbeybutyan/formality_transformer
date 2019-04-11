@@ -247,17 +247,17 @@ def load_mono_data(params, data):
 
     logger.info('')
 
+
 def load_generation_set(params, data):
     """
     Load generation set.
     """
-    result = {'dico': {}, 'gen': {}}
-    result['dico'] = data['dico']
+    result = {'dico': data['dico'], 'gen': {}}
     path = params.generation_set
     assert os.path.isfile(path)
     style = params.generation_source_style
     assert style in params.langs
-    logger.info('============ Generation source style data (%s)' % style)
+    logger.info('============Loading source style data (%s) for generation' % style)
 
     # load data
     style_data = load_binarized(path, params)

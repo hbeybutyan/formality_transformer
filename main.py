@@ -86,7 +86,7 @@ def get_parser():
                         help="Feed the discriminator with the projected output (attention only)")
     # dataset
     parser.add_argument("--langs", type=str, default="",
-                        help="Languages (lang1,lang2)")
+                        help="Languages/styles (lang1,lang2)")
     parser.add_argument("--vocab", type=str, default="",
                         help="Vocabulary (lang1:path1;lang2:path2)")
     parser.add_argument("--vocab_min_count", type=int, default=0,
@@ -188,11 +188,13 @@ def main(params):
     trainer.test_sharing()  # check parameters sharing
     evaluator = EvaluatorMT(trainer, data, params)
 
-    #generation mode
+    # generation mode
     if params.generation_set:
-        for lang1, lang2 in params.para_directions:
-            generator = Generator(trainer, load_generation_set(params, data), params)
-            generator.generate(lang2, lang1)
+        generator = Generator(trainer, load_generation_set(params, data), params)
+        if params.generation_source_style == params.langs[0]:
+            generator.generate(params.langs[0], params.langs[1])
+        else:
+            generator.generate(params.langs[1], params.langs[0])
         exit()
 
     # evaluation mode

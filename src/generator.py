@@ -23,14 +23,14 @@ class Generator(object):
         self.dico = data['dico']
         self.params = params
 
-    def get_iterator(self, lang1, lang2):
+    def get_iterator(self):
         """
         Create a new iterator for a dataset.
         """
         dataset = self.data['gen']
         dataset.batch_size = 32
         for batch in dataset.get_iterator(shuffle=False, group_by_size=False)():
-            yield batch if lang1 < lang2 else batch[::-1]
+            yield batch
 
     def generate(self, lang1, lang2):
         """
@@ -45,7 +45,7 @@ class Generator(object):
 
         # hypothesis
         txt = []
-        for batch in self.get_iterator(lang1, lang2):
+        for batch in self.get_iterator():
 
             # batch
             sent1, len1 = batch
