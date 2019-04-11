@@ -27,14 +27,16 @@ TOOLS_PATH=$PWD/tools
 DATA_PATH=$PWD/data
 MONO_PATH=$DATA_PATH/mono
 PARA_PATH=$DATA_PATH/para
-VALID_PATH=$PARA_PATH/validation
+VALID_FR_PATH=$PARA_PATH/validation_fr
+VALID_EM_PATH=$PARA_PATH/validation_em
 
 # create paths
 mkdir -p $TOOLS_PATH
 mkdir -p $DATA_PATH
 mkdir -p $MONO_PATH
 mkdir -p $PARA_PATH
-mkdir -p $VALID_PATH
+mkdir -p $VALID_FR_PATH
+mkdir -p $VALID_EM_PATH
 
 # moses
 MOSES=$TOOLS_PATH/mosesdecoder
@@ -81,12 +83,34 @@ SRC_TEST_RAW=$PARA_PATH/formal.test_raw
 TGT_TEST_RAW=$PARA_PATH/informal.test_raw
 
 
-SRC_IN_FR_RAW=$VALID_PATH/informal.fr_raw
-SRC_IN_FR=$VALID_PATH/informal.fr
-REF_F_FR_REF0=$VALID_PATH/formal.ref0.fr
-REF_F_FR_REF1=$VALID_PATH/formal.ref1.fr
-REF_F_FR_REF2=$VALID_PATH/formal.ref2.fr
-REF_F_FR_REF3=$VALID_PATH/formal.ref3.fr
+SRC_IN_FR_RAW=$VALID_FR_PATH/informal.fr_raw
+SRC_IN_FR=$VALID_FR_PATH/informal.fr
+REF_F_FR_REF0=$VALID_FR_PATH/formal.ref0.fr
+REF_F_FR_REF1=$VALID_FR_PATH/formal.ref1.fr
+REF_F_FR_REF2=$VALID_FR_PATH/formal.ref2.fr
+REF_F_FR_REF3=$VALID_FR_PATH/formal.ref3.fr
+
+SRC_F_FR_RAW=$VALID_FR_PATH/formal.fr_raw
+SRC_F_FR=$VALID_FR_PATH/formal.fr
+REF_IN_FR_REF0=$VALID_FR_PATH/informal.ref0.fr
+REF_IN_FR_REF1=$VALID_FR_PATH/informal.ref1.fr
+REF_IN_FR_REF2=$VALID_FR_PATH/informal.ref2.fr
+REF_IN_FR_REF3=$VALID_FR_PATH/informal.ref3.fr
+
+
+SRC_IN_EM_RAW=$VALID_EM_PATH/informal.em_raw
+SRC_IN_EM=$VALID_EM_PATH/informal.em
+REF_F_EM_REF0=$VALID_EM_PATH/formal.ref0.em
+REF_F_EM_REF1=$VALID_EM_PATH/formal.ref1.em
+REF_F_EM_REF2=$VALID_EM_PATH/formal.ref2.em
+REF_F_EM_REF3=$VALID_EM_PATH/formal.ref3.em
+
+SRC_F_EM_RAW=$VALID_EM_PATH/formal.em_raw
+SRC_F_EM=$VALID_EM_PATH/formal.em
+REF_IN_EM_REF0=$VALID_EM_PATH/informal.ref0.em
+REF_IN_EM_REF1=$VALID_EM_PATH/informal.ref1.em
+REF_IN_EM_REF2=$VALID_EM_PATH/informal.ref2.em
+REF_IN_EM_REF3=$VALID_EM_PATH/informal.ref3.em
 
 
 
@@ -348,7 +372,8 @@ $UMT_PATH/preprocess.py $FULL_VOCAB $TGT_TEST.$CODES
 
 
 echo "Downloading parallel data for validation..."
-cd $VALID_PATH
+# Family and Relations
+cd $VALID_FR_PATH
 wget -O $SRC_IN_FR_RAW 'https://drive.google.com/uc?export=download&id=1535YHKL6fJZyCkVoLO9QQlR3GgW2NIM5'
 wget -O $REF_F_FR_REF0 'https://drive.google.com/uc?export=download&id=18TMEFPxDuOxHWDVQgFkJTSa0axQgvfMT'
 wget -O $REF_F_FR_REF1 'https://drive.google.com/uc?export=download&id=1f0TUNFAa3Nka9et20HrwK0W53UaWBBiD'
@@ -373,6 +398,89 @@ $FASTBPE applybpe $SRC_IN_FR.$CODES $SRC_IN_FR $BPE_CODES $SRC_VOCAB
 echo "Binarizing data..."
 rm -f $SRC_IN_FR.$CODES.pth
 $UMT_PATH/preprocess.py $FULL_VOCAB $SRC_IN_FR.$CODES
+
+
+wget -O $SRC_F_FR_RAW 'https://drive.google.com/uc?export=download&id=1GIAnRgFdU64Vp9dS5bCbDYy9W8EiH3o9'
+wget -O $REF_IN_FR_REF0 'https://drive.google.com/uc?export=download&id=1yK04PJPJ2SW9EoVxw6pa9bOT4OPJIl7J'
+wget -O $REF_IN_FR_REF1 'https://drive.google.com/uc?export=download&id=1v5vhsxRa5x0mEn7fR32SvxvKoS0FqnkS'
+wget -O $REF_IN_FR_REF2 'https://drive.google.com/uc?export=download&id=1xLMpNMO7GY_3BIiUH_txrgExYqHEPNdi'
+wget -O $REF_IN_FR_REF3 'https://drive.google.com/uc?export=download&id=1zxUVBuOVEk2PTnh_ROtZQ4AMyUHPD5wI'
+
+# check files are here
+if ! [[ -f "$SRC_F_FR_RAW" ]]; then echo "$SRC_F_FR_RAW is not found!"; exit; fi
+if ! [[ -f "$REF_IN_FR_REF0" ]]; then echo "$REF_IN_FR_REF0 is not found!"; exit; fi
+if ! [[ -f "$REF_IN_FR_REF1" ]]; then echo "$REF_IN_FR_REF1 is not found!"; exit; fi
+if ! [[ -f "$REF_IN_FR_REF2" ]]; then echo "$REF_IN_FR_REF2 is not found!"; exit; fi
+if ! [[ -f "$REF_IN_FR_REF3" ]]; then echo "$REF_IN_FR_REF3 is not found!"; exit; fi
+
+
+echo "Tokenizing source data, the ref files will be used with sacrebleu which does not need preprocessing..."
+
+cat $SRC_F_FR_RAW | $NORM_PUNC -l en | $REM_NON_PRINT_CHAR | $TOKENIZER -l en -no-escape -threads $N_THREADS > $SRC_F_FR
+
+echo "Applying BPE to valid and test files..."
+$FASTBPE applybpe $SRC_F_FR.$CODES $SRC_F_FR $BPE_CODES $SRC_VOCAB
+
+echo "Binarizing data..."
+rm -f $SRC_F_FR.$CODES.pth
+$UMT_PATH/preprocess.py $FULL_VOCAB $SRC_F_FR.$CODES
+
+
+
+# Entertainment and Music
+cd $VALID_EM_PATH
+wget -O $SRC_IN_EM_RAW 'https://drive.google.com/uc?export=download&id=1J88TszNWtCBu0ltxpG_w4gwaauJ7rKLf'
+wget -O $REF_F_EM_REF0 'https://drive.google.com/uc?export=download&id=1C-5JuuUgOCQvIEQ4VvF6K_-vCFQg_APL'
+wget -O $REF_F_EM_REF1 'https://drive.google.com/uc?export=download&id=1_pabYarvAvf-VdWfZtejX52xN0ZdSMMP'
+wget -O $REF_F_EM_REF2 'https://drive.google.com/uc?export=download&id=1mWLA_vxxlBcbmXCMdKUu2CDTD4Q6MRlU'
+wget -O $REF_F_EM_REF3 'https://drive.google.com/uc?export=download&id=1IFe6ZoriK9c_88JN0NFhz-q1yj2RJSI6'
+
+# check files are here
+if ! [[ -f "$SRC_IN_EM_RAW" ]]; then echo "$SRC_IN_EM_RAW is not found!"; exit; fi
+if ! [[ -f "$REF_F_EM_REF0" ]]; then echo "$REF_F_EM_REF0 is not found!"; exit; fi
+if ! [[ -f "$REF_F_EM_REF1" ]]; then echo "$REF_F_EM_REF1 is not found!"; exit; fi
+if ! [[ -f "$REF_F_EM_REF2" ]]; then echo "$REF_F_EM_REF2 is not found!"; exit; fi
+if ! [[ -f "$REF_F_EM_REF3" ]]; then echo "$REF_F_EM_REF3 is not found!"; exit; fi
+
+
+echo "Tokenizing source data, the ref files will be used with sacrebleu which does not need preprocessing..."
+
+cat $SRC_IN_EM_RAW | $NORM_PUNC -l en | $REM_NON_PRINT_CHAR | $TOKENIZER -l en -no-escape -threads $N_THREADS > $SRC_IN_EM
+
+echo "Applying BPE to valid and test files..."
+$FASTBPE applybpe $SRC_IN_EM.$CODES $SRC_IN_EM $BPE_CODES $SRC_VOCAB
+
+echo "Binarizing data..."
+rm -f $SRC_IN_EM.$CODES.pth
+$UMT_PATH/preprocess.py $FULL_VOCAB $SRC_IN_EM.$CODES
+
+
+wget -O $SRC_F_EM_RAW 'https://drive.google.com/uc?export=download&id=1Xv9h2AlvTiHzWBV9ZqKuvoR6kglIkcg8'
+wget -O $REF_IN_EM_REF0 'https://drive.google.com/uc?export=download&id=14rKSeNj8tnmBoafmy8d6VijU9WtgjiKx'
+wget -O $REF_IN_EM_REF1 'https://drive.google.com/uc?export=download&id=1RsdkVd8ckergnj36SUlytumyZERFOw13'
+wget -O $REF_IN_EM_REF2 'https://drive.google.com/uc?export=download&id=1Slvr8mIZLcoHJNUzBHTSw95Z7QuHZJet'
+wget -O $REF_IN_EM_REF3 'https://drive.google.com/uc?export=download&id=1W9nVxCg3Fit26JHc2C6I5zfFlpzmPs-W'
+
+# check files are here
+if ! [[ -f "$SRC_F_EM_RAW" ]]; then echo "$SRC_F_EM_RAW is not found!"; exit; fi
+if ! [[ -f "$REF_IN_EM_REF0" ]]; then echo "$REF_IN_EM_REF0 is not found!"; exit; fi
+if ! [[ -f "$REF_IN_EM_REF1" ]]; then echo "$REF_IN_EM_REF1 is not found!"; exit; fi
+if ! [[ -f "$REF_IN_EM_REF2" ]]; then echo "$REF_IN_EM_REF2 is not found!"; exit; fi
+if ! [[ -f "$REF_IN_EM_REF3" ]]; then echo "$REF_IN_EM_REF3 is not found!"; exit; fi
+
+
+echo "Tokenizing source data, the ref files will be used with sacrebleu which does not need preprocessing..."
+
+cat $SRC_F_EM_RAW | $NORM_PUNC -l en | $REM_NON_PRINT_CHAR | $TOKENIZER -l en -no-escape -threads $N_THREADS > $SRC_F_EM
+
+echo "Applying BPE to valid and test files..."
+$FASTBPE applybpe $SRC_F_EM.$CODES $SRC_F_EM $BPE_CODES $SRC_VOCAB
+
+echo "Binarizing data..."
+rm -f $SRC_F_EM.$CODES.pth
+$UMT_PATH/preprocess.py $FULL_VOCAB $SRC_F_EM.$CODES
+
+
 
 #
 # Summary
