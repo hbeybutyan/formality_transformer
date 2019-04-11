@@ -99,6 +99,8 @@ def get_parser():
                         help="Set of input sentences to transfer style.")
     parser.add_argument("--generation_source_style", type=str, default="",
                         help="Formality of source set used to transform.")
+    parser.add_argument("--valid_domain", type=str, default="",
+                        help="From which domain are the validation files. fr - family&relations, em - entertainment&music, oth - other")
     parser.add_argument("--n_mono", type=int, default=0,
                         help="Number of monolingual sentences (-1 for everything)")
     parser.add_argument("--n_para", type=int, default=0,
@@ -190,6 +192,7 @@ def main(params):
 
     # generation mode
     if params.generation_set:
+        assert params.valid_domain in ["fr", "em", "oth"]
         generator = Generator(trainer, load_generation_set(params, data), params)
         if params.generation_source_style == params.langs[0]:
             generator.generate(params.langs[0], params.langs[1])

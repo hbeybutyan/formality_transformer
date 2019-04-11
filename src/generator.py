@@ -59,7 +59,7 @@ class Generator(object):
             txt.extend(convert_to_text(sent2_, len2_, self.dico[lang2], lang2_id, self.params))
 
         # hypothesis / reference paths
-        hyp_name = 'gen.{0}-{1}.txt'.format(lang1, lang2)
+        hyp_name = 'gen.{0}-{1}.{2}.txt'.format(lang1, lang2, params.valid_domain)
         hyp_path = os.path.join(params.dump_path, hyp_name)
 
         # export sentences to hypothesis file / restore BPE segmentation
