@@ -298,8 +298,8 @@ class TransformerDecoder(nn.Module):
         while cur_len < max_len:
 
             # previous word embeddings
-            scores = self.forward(encoded, decoded[:cur_len], lang_id, one_hot, incremental_state)
-            scores = scores.data[-1, :, :]  # T x B x V -> B x V
+            scores_raw = self.forward(encoded, decoded[:cur_len], lang_id, one_hot, incremental_state)
+            scores = scores_raw.data[-1, :, :]  # T x B x V -> B x V
 
             # select next words: sample or one-hot
             if sample:

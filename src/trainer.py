@@ -452,7 +452,7 @@ class TrainerMT(MultiprocessingEventLoop):
 
         # cross-entropy scores / loss
         sent_back, len_back, _ = self.decoder.generate(encoded, lang2_id)
-        encoded_back = self.encoder(sent_back, len_back, lang1_id)
+        encoded_back = self.encoder(sent_back, len_back, lang2_id)
         scores_back = self.decoder(encoded_back, sent1[:-1], lang1_id)
         xe_loss = loss_fn(scores_back.view(-1, n_words), sent1[1:].view(-1))
         self.stats['xe_costs_%s_%s' % (lang1, lang2)].append(xe_loss.item())
