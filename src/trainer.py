@@ -564,12 +564,12 @@ class TrainerMT(MultiprocessingEventLoop):
         logger.info("Saving checkpoint to %s ..." % checkpoint_path)
         torch.save(checkpoint_data, checkpoint_path)
 
-    def reload_checkpoint(self):
+    def reload_checkpoint(self, checkpoint_file):
         """
         Reload a checkpoint if we find one.
         """
         # reload checkpoint
-        checkpoint_path = os.path.join(self.params.dump_path, 'checkpoint.pth')
+        checkpoint_path = os.path.join(self.params.dump_path, checkpoint_file)
         if not os.path.isfile(checkpoint_path):
             return
         logger.warning('Reloading checkpoint from %s ...' % checkpoint_path)
