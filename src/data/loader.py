@@ -357,9 +357,12 @@ def check_all_data_params(params):
     assert params.vocab_min_count == 0 or params.vocab_min_count >= 0 and len(params.vocab) > 0
 
     # check coefficients
-    assert not (params.lambda_dis == "0") ^ (params.n_dis == 0)
-    assert not (params.lambda_xe_mono == "0") ^ (len(params.mono_directions) == 0)
-    assert not (params.lambda_xe_para == "0") ^ (len(params.para_directions) == 0)
+    if params.lambda_dis is not "0":
+        assert params.n_dis != 0
+    if params.lambda_xe_mono is not "0":
+        assert len(params.mono_directions) != 0
+    if params.lambda_xe_para is not "0":
+        assert len(params.para_directions) != 0
 
     # max length / max vocab / sentence noise
     assert params.max_len > 0
