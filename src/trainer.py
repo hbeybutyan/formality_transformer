@@ -564,12 +564,12 @@ class TrainerMT(MultiprocessingEventLoop):
         logger.info("Saving checkpoint to %s ..." % checkpoint_path)
         torch.save(checkpoint_data, checkpoint_path)
 
-    def reload_checkpoint(self, checkpoint_file):
+    def reload_checkpoint(self):
         """
         Reload a checkpoint if we find one.
         """
         # reload checkpoint
-        checkpoint_path = os.path.join(self.params.dump_path, checkpoint_file)
+        checkpoint_path = os.path.join(self.params.dump_path, "checkpoint.pth")
         if not os.path.isfile(checkpoint_path):
             return
         logger.warning('Reloading checkpoint from %s ...' % checkpoint_path)
@@ -590,6 +590,21 @@ class TrainerMT(MultiprocessingEventLoop):
             'dis': (self.discriminator, self.dis_optimizer),
         }
         logger.warning('Checkpoint reloaded. Resuming at epoch %i ...' % self.epoch)
+
+    def load_saved_model(self, saved_model_path):
+        """
+        Reload a saved model if we find one.
+        """
+        # reload checkpoint
+        model_path = os.path.join(self.params.dump_path, saved_model_path)
+        assert os.path.isfile(model_path)
+        logger.warning('Reloading saved model from %s ...' % model_path)
+        checkpoint_data = torch.load(model_path)
+        self.encoder = checkpoint_data['enc']
+        self.decoder = checkpoint_data['dec']
+        self.discriminator = checkpoint_data['dis']
+        logger.warning("Model loaded.")
+
 
     def test_sharing(self):
         """

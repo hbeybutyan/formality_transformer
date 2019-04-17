@@ -21,8 +21,8 @@ def get_parser():
                         help="Experiment ID")
     parser.add_argument("--dump_path", type=str, default="./dumped/",
                         help="Experiment dump path")
-    parser.add_argument("--checkpoint_file", type=str, default="checkpoint.pth",
-                        help="Checkpoint file name to load.")
+    parser.add_argument("--model_file", type=str, default="",
+                        help="Saved model file name to load.")
     parser.add_argument("--save_periodic", type=bool_flag, default=False,
                         help="Save the model periodically")
     parser.add_argument("--seed", type=int, default=-1,
@@ -188,7 +188,10 @@ def main(params):
 
     # initialize trainer / reload checkpoint / initialize evaluator
     trainer = TrainerMT(encoder, decoder, discriminator, data, params)
-    trainer.reload_checkpoint(params.checkpoint_file)
+    if params.model_file:
+        trainer.load_saved_model(params.model_file)
+    else:
+        trainer.reload_checkpoint()
     trainer.test_sharing()  # check parameters sharing
     evaluator = EvaluatorMT(trainer, data, params)
 
