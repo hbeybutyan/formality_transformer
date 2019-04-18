@@ -113,6 +113,7 @@ python main.py
 ## reload model
 --pretrained_emb $PRETRAINED                # cross-lingual embeddings path
 --pretrained_out True                       # also pretrain output layers
+--model_file                                # if specified the file will be loaded instead of checkpoint
 
 --reload_model ""                           # reload a pre-trained model
 --reload_enc False                          # reload a pre-trained encoder
@@ -128,6 +129,10 @@ python main.py
 --beam_size 0                               # beam width (<= 0 means greedy)
 --length_penalty 1.0                        # length penalty: <1.0 favors shorter, >1.0 favors longer sentences
 
+## generation
+--generation_set ''                         # a set of preprocessed sentences which must be style transformed
+--generation_source_style ''                # a style of sentences in generation set
+--valid_domain ''                           # a comtext domain of generation set. This is used for output naming only
 
 ## Where
 MONO_DATASET='f:./data/mono/all.f.tok.60000.pth,,;in:./data/mono/all.in.tok.60000.pth,,'
